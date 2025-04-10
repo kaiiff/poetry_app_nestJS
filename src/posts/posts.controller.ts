@@ -17,25 +17,35 @@ import {
 } from '../common/decorators/pagination.decorator';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody,ApiQuery } from '@nestjs/swagger';
 import { CreatePostDto,PaginationQueryDto } from './dto/create-post.dto';
+import { PostsGateway } from './posts.gateway';
 
 @ApiTags('Posts')
 @ApiBearerAuth('access-token') // 👈 Add this for token support
 @Controller('posts')
 export class PostsController {
-  constructor(private postsService: PostsService) {}
+  constructor(
+    private postsService: PostsService,
+    private postsGateway: PostsGateway,
+  ) {}
 
   @Post('create')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a new post (requires auth)' })
   @ApiBody({ type: CreatePostDto })
-  createPost(@Body() body: { content: string }, @Request() req) {
+  async createPost(@Body() body: { content: string }, @Request() req) {
     const authorId = req.user.userId;
-    return this.postsService.createPost(body.content, authorId);
+    const newPost = await this.postsService.createPost(body.content, authorId);
+
+    this.postsGateway.emitNewPost(newPost);
+
+    return newPost;
+
+
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all posts with pagination' })
-  @ApiQuery({type:PaginationQueryDto})
+  @ApiQuery({ type: PaginationQueryDto })
   getAllPosts(@Pagination() { page, limit }: PaginationParams) {
     return this.postsService.getAllPosts(page, limit);
   }

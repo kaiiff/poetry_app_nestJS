@@ -8,6 +8,11 @@ export class PostsService {
   async createPost(content: string, authorId: string) {
     return this.prisma.post.create({
       data: { content, authorId },
+      include: {
+        author: {
+          select: { id: true, name: true }, // 👈 Add any fields you want to emit
+        },
+      },
     });
   }
 
@@ -17,7 +22,6 @@ export class PostsService {
   //   });
   // }
 
-  
   async getAllPosts(page: number, limit: number) {
     const skip = (page - 1) * limit;
 
